@@ -6,12 +6,12 @@ const tMainTerrain = "alpine_snow_a";
 const tForestFloor1 = "alpine_forrestfloor_snow";
 const tForestFloor2 = "polar_snow_rocks";
 const tCliff = ["alpine_cliff", "alpine_cliff_a", "alpine_cliff_b"];
-const tHill = ["polar_ice", "polar_ice_b"];
+const tHill = "polar_ice_b";
 const tRoad = "new_alpine_citytile";
 const tRoadWild = "alpine_snow_rocky";
 const tShoreBlend = "alpine_shore_rocks_grass_50";
 const tShore = "alpine_shore_rocks";
-const tWater = "alpine_shore_rocks";
+const tWater = "polar_ice_b";
 
 const oTree1 = "gaia/flora_tree_dead";
 const oTree2 = "gaia/flora_tree_oak_dead";
@@ -50,6 +50,9 @@ var clRock = createTileClass();
 var clMetal = createTileClass();
 var clFood = createTileClass();
 var clBaseResource = createTileClass();
+var clRiver = createTileClass();
+var clShallow = createTileClass();
+var clLand = createTileClass();
 
 for (var ix = 0; ix < mapSize; ix++)
 {
@@ -184,6 +187,8 @@ createAreas(
 	scaleByMapSize(300, 800)
 );
 
+createBumps();
+
 log("Creating hills...");
 if (randBool())
 	createHills([tCliff, tCliff, tHill], avoidClasses(clPlayer, 20, clHill, 15), clHill, scaleByMapSize(3, 15));
@@ -209,13 +214,78 @@ createForests(
 
 RMS.SetProgress(50);
 
+const WATER_WIDTH = 0.07;
+
+log("Creating river");
+var theta = randFloat(0, 1);
+var seed = randFloat(2,3);
+
+for (var ix = 0; ix < mapSize; ix++)
+{
+	for (var iz = 0; iz < mapSize; iz++)
+	{
+		var x = ix / (mapSize + 1.0);
+		var z = iz / (mapSize + 1.0);
+
+		var h = 0;
+		var distToWater = 0;
+
+		h = 5 * (z - 0.5);
+
+		// add the rough shape of the water
+		var km = 12/scaleByMapSize(1.5, 2);
+		var cu = km*rndRiver(theta+z*0.5*(mapSize/64),seed);
+		var zk = z*randFloat(0.995,1.005);
+		var xk = x*randFloat(0.995,1.005);
+		if (-3.0 < getHeight(ix, iz)){
+		if ((xk > cu+((1.0-WATER_WIDTH)/2))&&(xk < cu+((1.0+WATER_WIDTH)/2)))
+		{
+			if (xk < cu+((1.05-WATER_WIDTH)/2))
+			{
+				h = -3 + 200.0* abs(cu+((1.05-WATER_WIDTH)/2-xk));
+				if ((((zk>0.3)&&(zk<0.4))||((zk>0.5)&&(zk<0.6))||((zk>0.7)&&(zk<0.8)))&&(h<-1.5))
+				{
+					h=-0.5;
+					addToClass(ix, iz, clShallow);
+				}
+
+			}
+			else if (xk > (cu+(0.95+WATER_WIDTH)/2))
+			{
+				h = -3 + 200.0*(xk-(cu+((0.95+WATER_WIDTH)/2)));
+				if ((((zk>0.3)&&(zk<0.4))||((zk>0.5)&&(zk<0.6))||((zk>0.7)&&(zk<0.8)))&&(h<-1.5))
+				{
+					h=-0.5;
+					addToClass(ix, iz, clShallow);
+				}
+			}
+			else
+			{
+				if (((zk>0.3)&&(zk<0.4))||((zk>0.5)&&(zk<0.6))||((zk>0.7)&&(zk<0.8))){
+					h = -0.5;
+					addToClass(ix, iz, clShallow);
+				}
+				else
+				{
+					h = -1.0;
+				}
+			}
+			setHeight(ix, iz, h);
+			addToClass(ix, iz, clRiver);
+			placeTerrain(ix, iz, tWater);
+		}
+		}
+	}
+}
+
+
 log("Creating pools...");
 for (var i = 0; i < 7; i++)
 {
 	placer = new ChainPlacer(1, floor(scaleByMapSize(2, 5)), floor(scaleByMapSize(15, 60)), 0.8);
 	var terrainPainter = new LayeredPainter(
-		[tShoreBlend, tShore, tWater],		// terrains
-		[1,1]							// widths
+		[tShoreBlend, tShore, tWater],
+		[1,1]	
 	);
 	var elevationPainter = new SmoothElevationPainter(ELEVATION_SET, -2, 3);
 }
@@ -227,7 +297,9 @@ createMines(
  [
   [new SimpleObject(oStoneSmall, 0,2, 0,4), new SimpleObject(oStoneLarge, 1,1, 0,4)],
   [new SimpleObject(oStoneSmall, 2,5, 1,3)]
- ]
+ ],
+ avoidClasses(clForest, 1, clPlayer, 20, clWater, 3, clMetal, 10, clRock, 5, clHill, 1),
+ clRock
 );
 
 log("Creating metal mines...");
@@ -235,7 +307,7 @@ createMines(
  [
   [new SimpleObject(oMetalLarge, 1,1, 0,4)]
  ],
- avoidClasses(clForest, 1, clPlayer, 20, clMetal, 10, clRock, 5, clHill, 1),
+ avoidClasses(clForest, 1,clWater, 3, clPlayer, 20, clMetal, 10, clRock, 5, clHill, 1),
  clMetal
 );
 
@@ -278,7 +350,8 @@ createFood
   3 * numPlayers,
   3 * numPlayers,
   3 * numPlayers
- ]
+ ],
+ avoidClasses(clWater, 3, clPlayer, 20, clHill, 1, clFood, 10)
 );
 
 RMS.SetProgress(75);
@@ -308,6 +381,6 @@ createFood
 RMS.SetProgress(85);
 
 var types = [oTree1, oTree2, oBush];
-createStragglerTrees(types);
+createStragglerTrees(types, [avoidClasses(clForest, 1, clHill, 1, clPlayer, 9, clMetal, 6, clRock, 6, clRiver, 1), stayClasses(clLand, 7)]);
 
 ExportMap();
