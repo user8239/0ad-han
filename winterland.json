@@ -2,7 +2,7 @@
 	"settings" : {
 		"Name" : "Winterland",
 		"Script" : "winterland.js",
-		"Description" : "Carpeted in snow, the land slumbers in peace, but this fragile peace is destined to be shattered - and not by spring. Large packs of wolves lurk in the wild searching for prey, a lone arctic fox scurries away to hide. Starting in this seemingly hostile terrain, players must conquer - or be conquered. ",
+		"Description" : "Carpeted in snow, the land slumbers in repose, but this fragile peace is destined to be shattered - and not by spring. Large packs of wolves lurk in the wild searching for prey, a lone arctic fox scurries away to hide. Starting in this seemingly hostile terrain, players must conquer - or be conquered. ",
 		"BaseTerrain" : "alpine_snow_a",
 		"BaseHeight" : 1,
 		"Preview" : "winterland.png",
